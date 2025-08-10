@@ -85,7 +85,7 @@ const uint32_t Constants::AC_STATE_REQUEST_INTERVAL = 300;
 
 class GreeClimate : public climate::Climate, public uart::UARTDevice, public PollingComponent {
  public:
-  // void setup() override;
+  void setup() override;
   void loop() override;
   void update() override;
   void dump_config() override;
@@ -113,6 +113,14 @@ class GreeClimate : public climate::Climate, public uart::UARTDevice, public Pol
   uint8_t data_read_[GREE_RX_BUFFER_SIZE] = {0};
 
   bool receiving_packet_ = false;
+  bool is_changed = 1;
+
+  void set_current_temperature (float current_temperature);
+  void set_fan_mode (esphome::climate::ClimateFanMode fan_mode);
+  void set_mode (esphome::climate::ClimateMode mode);
+  void set_preset (esphome::climate::ClimatePreset preset);
+  void set_swing_mode (esphome::climate::ClimateSwingMode swing_mode);
+  void set_target_temperature (float target_temperature);
 
   std::set<climate::ClimatePreset> supported_presets_{};
   // std::set<climate::ClimateSwingMode> supported_swing_modes_{};
