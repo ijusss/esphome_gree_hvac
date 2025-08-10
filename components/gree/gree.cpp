@@ -71,11 +71,9 @@ void GreeClimate::loop() {
   }
 }
 
-/*
 void GreeClimate::setup() {
-  this->set_update_interval(300);
+  this->set_update_interval(1000);
 }
-*/
 
 void GreeClimate::update() {
   data_write_[CRC_WRITE] = get_checksum_(data_write_, sizeof(data_write_));
@@ -118,6 +116,42 @@ climate::ClimateTraits GreeClimate::traits() {
   return traits;
 }
 
+void GreeClimate::set_current_temperature (float current_temperature) {
+  if (this->current_temperature == current_temperature) return;
+  this->is_changed = true;
+  this->current_temperature = current_temperature;
+}
+
+void GreeClimate::set_fan_mode (esphome::climate::ClimateFanMode fan_mode) {
+  if (this->fan_mode == fan_mode) return;
+  this->is_changed = true;
+  this->fan_mode = fan_mode;
+}
+
+void GreeClimate::set_mode (esphome::climate::ClimateMode mode) {
+  if (this->mode == mode) return;
+  this->is_changed = true;
+  this->mode = mode;
+}
+
+void GreeClimate::set_preset (esphome::climate::ClimatePreset preset) {
+  if (this->preset == preset) return;
+  this->is_changed = true;
+  this->preset = preset;
+}
+
+void GreeClimate::set_swing_mode (esphome::climate::ClimateSwingMode swing_mode) {
+  if (this->swing_mode == swing_mode) return;
+  this->is_changed = true;
+  this->swing_mode = swing_mode;
+}
+
+void GreeClimate::set_target_temperature (float target_temperature) {
+  if (this->target_temperature == target_temperature) return;
+  this->is_changed = true;
+  this->target_temperature = target_temperature;
+}
+
 void GreeClimate::read_state_(const uint8_t *data, uint8_t size) {
   // get checksum byte from received data (using the last byte)
   uint8_t data_crc = data[size-1];
@@ -135,8 +169,9 @@ void GreeClimate::read_state_(const uint8_t *data, uint8_t size) {
     return;
   }
 
-  this->target_temperature = data[TEMPERATURE] / 16 + MIN_VALID_TEMPERATURE;
-  this->current_temperature = data[INDOOR_TEMPERATURE] - 40; // check later?
+  this->is_changed = false;
+  this->set_target_temperature(data[TEMPERATURE] / 16 + MIN_VALID_TEMPERATURE);
+  this->set_current_temperature(data[INDOOR_TEMPERATURE] - 40); // check later?
 
   // partially saving current state to previous request
   data_write_[MODE] = data[MODE];
@@ -146,22 +181,22 @@ void GreeClimate::read_state_(const uint8_t *data, uint8_t size) {
   // update CLIMATE state according AC response
   switch (data[MODE] & MODE_MASK) {
     case AC_MODE_OFF:
-      this->mode = climate::CLIMATE_MODE_OFF;
+      this->set_mode(climate::CLIMATE_MODE_OFF);
       break;
     case AC_MODE_AUTO:
-      this->mode = climate::CLIMATE_MODE_AUTO;
+      this->set_mode(climate::CLIMATE_MODE_AUTO);
       break;
     case AC_MODE_COOL:
-      this->mode = climate::CLIMATE_MODE_COOL;
+      this->set_mode(climate::CLIMATE_MODE_COOL);
       break;
     case AC_MODE_DRY:
-      this->mode = climate::CLIMATE_MODE_DRY;
+      this->set_mode(climate::CLIMATE_MODE_DRY);
       break;
     case AC_MODE_FANONLY:
-      this->mode = climate::CLIMATE_MODE_FAN_ONLY;
+      this->set_mode(climate::CLIMATE_MODE_FAN_ONLY);
       break;
     case AC_MODE_HEAT:
-      this->mode = climate::CLIMATE_MODE_HEAT;
+      this->set_mode(climate::CLIMATE_MODE_HEAT);
       break;
     default:
       ESP_LOGW(TAG, "Unknown AC MODE&fan: %s", data[MODE]);
@@ -170,16 +205,16 @@ void GreeClimate::read_state_(const uint8_t *data, uint8_t size) {
   // get current AC FAN SPEED from its response
   switch (data[MODE] & FAN_MASK) {
     case AC_FAN_AUTO:
-      this->fan_mode = climate::CLIMATE_FAN_AUTO;
+      this->set_fan_mode(climate::CLIMATE_FAN_AUTO);
       break;
     case AC_FAN_LOW:
-      this->fan_mode = climate::CLIMATE_FAN_LOW;
+      this->set_fan_mode(climate::CLIMATE_FAN_LOW);
       break;
     case AC_FAN_MEDIUM:
-      this->fan_mode = climate::CLIMATE_FAN_MEDIUM;
+      this->set_fan_mode(climate::CLIMATE_FAN_MEDIUM);
       break;
     case AC_FAN_HIGH:
-      this->fan_mode = climate::CLIMATE_FAN_HIGH;
+      this->set_fan_mode(climate::CLIMATE_FAN_HIGH);
       break;
     default:
       ESP_LOGW(TAG, "Unknown AC mode&FAN: %s", data[MODE]);
@@ -188,19 +223,19 @@ void GreeClimate::read_state_(const uint8_t *data, uint8_t size) {
   /*
   switch (data[SWING]) {
     case AC_SWING_OFF:
-      this->swing_mode = climate::CLIMATE_SWING_OFF;
+      this->set_swing_mode(climate::CLIMATE_SWING_OFF);
       break;
 
     case AC_SWING_VERTICAL:
-      this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
+      this->set_swing_mode(climate::CLIMATE_SWING_VERTICAL);
       break;
 
     case AC_SWING_HORIZONTAL:
-      this->swing_mode = climate::CLIMATE_SWING_HORIZONTAL;
+      this->set_swing_mode(climate::CLIMATE_SWING_HORIZONTAL);
       break;
 
     case AC_SWING_BOTH:
-      this->swing_mode = climate::CLIMATE_SWING_BOTH;
+      this->set_swing_mode(climate::CLIMATE_SWING_BOTH);
       break;
   }
   */
@@ -208,18 +243,19 @@ void GreeClimate::read_state_(const uint8_t *data, uint8_t size) {
   switch (data[10]) {
     case 7:
       // when COOL TURBO
-      this->preset = climate::CLIMATE_PRESET_BOOST;
+      this->set_preset(climate::CLIMATE_PRESET_BOOST);
       break;
     case 15:
       // when HEAT TURBO
-      this->preset = climate::CLIMATE_PRESET_BOOST;
+      this->set_preset(climate::CLIMATE_PRESET_BOOST);
       break;
     default:
-      this->preset = climate::CLIMATE_PRESET_NONE;
+      this->set_preset(climate::CLIMATE_PRESET_NONE);
       break;
   }
 
-  this->publish_state();
+  if (this->is_changed)
+    this->publish_state();
 }
 
 void GreeClimate::control(const climate::ClimateCall &call) {
